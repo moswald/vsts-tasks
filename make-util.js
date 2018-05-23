@@ -1172,6 +1172,8 @@ var compressTasks = function (sourceRoot, destPath, individually) {
 exports.compressTasks = compressTasks;
 
 var createNonAggregatedZip = function (buildPath, packagePath) {
+    console.log();
+    console.log('> Creating non aggregate zip');
     assert(buildPath, 'buildPath');
     assert(packagePath, 'packagePath');
 
@@ -1201,8 +1203,253 @@ var createNonAggregatedZip = function (buildPath, packagePath) {
     console.log('> Zipping non-aggregated tasks layout');
     var nonAggregatedZipPath = path.join(packagePath, 'non-aggregated-tasks.zip');
     compressTasks(nonAggregatedLayoutPath, nonAggregatedZipPath);
+
+    return nonAggregatedLayoutPath;
 }
 exports.createNonAggregatedZip = createNonAggregatedZip;
+
+// TODO: Update all these comments considering changes for running locally.
+// Overview:
+// 
+// This script starts with having a folder per task with the content for each task inside(comes from combining the slices).
+// First we need to copy this to a per-task-layout folder.
+// We start by adding a .nuspec file for each task inside the task folder.
+// Then we iterate each of these tasks and create a .nupkg and push.cmd per task.
+// The pushed artifact has a folder per task that was built and inside that folder is a .nupkg and push.cmd for the task.
+// 
+// Folder structure: TODO, add examples at each stage
+
+// Stage 1: Build tasks
+
+// Stage 2: Create non aggregated zip
+
+// Stage 3: Zip entire task contents to FULL TASK NAME.zip
+
+// Stage 4: Create nuspec files
+
+// Stage 5: Create nuget packages and push.cmd and push-all.cmd
+
+
+// TODO: Redo this for new path structure that works both locally and on server
+// _package
+//  /per-task-layout (util.perTaskLayoutPath)
+//      /CmdLineV2__v2 // Keep "__v2" until everyone has version in their task name.
+//          /Strings
+//          /task.json
+//          /task.loc.json
+//          /task.zip
+//          /Mseng.MS.TF.DistributedTask.Tasks.CmdLineV2__v2.nuspec *created in this script
+// 
+//  /per-task-publish (util.perTaskPublishPath)
+//      /CmdLineV2__v2 //  Keep "__v2" until everyone has version in their task name.
+//          Mseng.MS.TF.DistributedTask.Tasks.CmdLine.2.132.0.nupkg * created in this script
+//          push.cmd * created in this script
+//      push-all.cmd (courtesy script that runs all push.cmds, we will run this once a sprint and force a build all) TODO: Create this.
+// 
+// Notes:
+// 
+// Currently the code works within the legacy setup of having multiple slices that are pushed as artifacts and then recombined.
+// Once this code is live for a while we will remove that legacy code and it should simplify the setup here. We can use the original 
+//    build folders for each task in place of the per-task-layout.
+var createNugetPackagePerTask = function (packagePath, /*nonAggregatedLayoutPath*/layoutPath) {
+    console.log();
+    console.log('> Creating NuGet package per task')
+
+    // create folder for _package\task-zips
+    console.log();
+    console.log('> Creating task zips folder');
+    var tasksZipsPath = path.join(packagePath, 'task-zips');
+    mkdir('-p', tasksZipsPath);
+
+    // _package\artifacts
+    // This is the final state of the task content and what is published.
+    console.log();
+    console.log('> Creating artifacts folder');
+    var artifactsPath = path.join(packagePath, "artifacts");
+    mkdir('-p', artifactsPath);
+
+    console.log();
+    console.log('> Zipping task folders')
+
+    var unifiedDepsContent = '';
+    var servicingXmlContent = '';
+
+    fs.readdirSync(layoutPath)
+        .forEach(function (taskFolderName) {
+            var taskLayoutPath = path.join(layoutPath, taskFolderName);
+
+            if (!fs.statSync(taskLayoutPath).isDirectory) {
+                return;
+            }
+
+            // TODO: I think we can get rid of this.
+            if (taskFolderName === 'layout-version.txt') { // TODO: Clean this up. Make sure we have layout-version in each task nuget package? I think we need it? Is it applicable in nuget package per task setup?
+                return;
+            }
+            
+            
+            var taskJsonPath = path.join(taskLayoutPath, 'task.json');
+            var taskJsonContents = JSON.parse(fs.readFileSync(taskJsonPath));
+
+            // extract values that we need from task.json
+            var taskVersion = taskJsonContents.version.Major + '.' + taskJsonContents.version.Minor + '.' + taskJsonContents.version.Patch;
+            var taskName = taskJsonContents.name;
+            var fullTaskName = 'Mseng.MS.TF.DistributedTask.Tasks.' + taskName;
+
+            // Create xml entries for UnifiedDependencies
+            // <package id="Mseng.MS.TF.Build.Tasks.AzureCLI" version="1.132.0" availableAtDeployTime="true" />
+            unifiedDepsContent += `  <package id="${fullTaskName}" version="${taskVersion}" availableAtDeployTime="true" />` + os.EOL;
+
+            // Create xml entries for servicing
+            // 	<File Origin="nuget://Mseng.MS.TF.DistributedTask.Tasks.XCode/*?version=2.121.0" />
+            servicingXmlContent += 	`<File Origin="nuget://${fullTaskName}/*?version=${taskVersion}" />` + os.EOL;
+
+            // Create a matching folder inside taskZipsPath
+            var taskZipPath = path.join(tasksZipsPath, taskFolderName);
+            mkdir('-p', taskZipPath);
+            console.log('root task folder: ' + taskZipPath);
+
+            // Create a task folder inside the folder so that when we do a nuget pack the contents are inside a folder.
+            // This makes things easier/cleaner downstream when we do servicing and prevents needing to zip the contents
+            //  a second time.
+            // TODO: Provide an example and downstream consumption case?
+            // TODO: I think there is a bug here, tasksZipsPath should be taskZipPath?
+            // Old, think theres a bug
+            //var folderInsideFolderPath = path.join(tasksZipsPath, taskFolderName);
+            // New, should be nested
+            var folderInsideFolderPath = path.join(taskZipPath, taskFolderName);
+            mkdir('-p', folderInsideFolderPath);
+            console.log('nested folder: ' + folderInsideFolderPath);
+
+            // TOOD: This is probably slow. Check other code to do hard sync?
+            var copydir = require('copy-dir');
+            copydir.sync(taskLayoutPath, folderInsideFolderPath);
+            //fs.copyFileSync(taskLayoutPath, taskZipPath);
+
+
+            // Zip the folder from non aggregated layout and name it based on task.json contents. TODO: Refactor this to method?
+            // TODO IMPORTANT: We want to zip it as an entire folder so that when we unzip it's a full folder? Makes the servicing processing simpler.
+            // var taskZip = new admZip();
+            // taskZip.addLocalFolder(taskLayoutPath);
+            // taskZip.writeZip(path.join(taskZipPath, `${fullTaskName}.zip`));
+
+            // Now we can create the nuspec file, nupkg, and push.cmd
+            // var taskNuspecPath = createNuspecFile(taskLayoutPath, fullTaskName, taskVersion);
+            var taskNuspecPath = createNuspecFile(taskZipPath, fullTaskName, taskVersion);
+
+            // var taskArtifactFolder = path.join(artifactsPath, taskFolderName);
+            // mkdir('-p', taskArtifactFolder);
+            
+            //var taskPublishFolder = createNuGetPackage(artifactsPath, taskFolderName, taskNuspecPath, taskLayoutPath);
+            var taskPublishFolder = createNuGetPackage(artifactsPath, taskFolderName, taskNuspecPath, taskZipPath);
+            createPushCmd(taskPublishFolder, fullTaskName, taskVersion);
+        });
+
+    // Create root push.cmd
+    console.log();
+    console.log('> Creating root push.cmd')
+    var contents = 'for /D %%s in (.\\*) do ( ' + os.EOL;
+    contents +=     'pushd %%s' + os.EOL;
+    contents +=     'push.cmd' + os.EOL;
+    contents +=     'popd' + os.EOL;
+    contents += ')';
+    var rootPushCmdPath = path.join(artifactsPath, 'push.cmd');
+    fs.writeFileSync(rootPushCmdPath, contents);
+
+    // Create xml entries for UnifiedDependencies
+    // <package id="Mseng.MS.TF.Build.Tasks.AzureCLI" version="1.132.0" availableAtDeployTime="true" />
+    console.log('> Generating XML dependencies for UnifiedDependencies');
+    var depsContentPath = path.join(artifactsPath, 'unified_deps.xml');
+    fs.writeFileSync(depsContentPath, unifiedDepsContent);
+
+    // Create xml entries for servicing
+    // 	<File Origin="nuget://Mseng.MS.TF.DistributedTask.Tasks.XCode/*?version=2.121.0" />
+    console.log('> Generating XML dependencies for Servicing');
+    var servicingContentPath = path.join(artifactsPath, 'servicing.xml');
+    fs.writeFileSync(servicingContentPath, servicingXmlContent);
+}
+exports.createNugetPackagePerTask = createNugetPackagePerTask;
+
+/**
+ * Create .nuspec file for the task.
+ * @param {*} taskLayoutPath Layout path for the specific task we are creating nuspec for. e.g. - _package\per-task-layout\AzurePowerShellV3__v3
+ * @param {*} fullTaskName Full name of the task. e.g - AzureCLIV2
+ * @param {*} taskVersion taskVersion Version of the task. e.g - 1.132.0
+ * @returns Path of the nuspec file that was created. // e.g. - _package\per-task-layout\AzureCLIV1__v1\Mseng.MS.TF.DistributedTask.Tasks.AzureCLIV1.nuspec
+ */
+var createNuspecFile = function (taskLayoutPath, fullTaskName, taskVersion) {
+    console.log('> Creating nuspec file');
+    
+    var contents = '<?xml version="1.0" encoding="utf-8"?>' + os.EOL;
+    contents += '<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">' + os.EOL;
+    contents += '   <metadata>' + os.EOL;
+    contents += '      <id>' + fullTaskName + '</id>' + os.EOL;
+    contents += '      <version>' + taskVersion + '</version>' + os.EOL;
+    contents += '      <authors>bigbldt</authors>' + os.EOL;
+    contents += '      <owners>bigbldt,Microsoft</owners>' + os.EOL;
+    contents += '      <requireLicenseAcceptance>false</requireLicenseAcceptance>' + os.EOL;
+    contents += '      <description>For VSS internal use only</description>' + os.EOL;
+    contents += '      <tags>VSSInternal</tags>' + os.EOL;
+    contents += '   </metadata>' + os.EOL;
+
+    // // start experiment
+    // contents += '<files>' + os.EOL;
+    // contents += '<file src="**\*.*" target="MyLib" />' + os.EOL;
+    // contents += '</files>' + os.EOL;
+    // // end experiment
+
+    contents += '</package>' + os.EOL;
+
+    var taskNuspecPath = path.join(taskLayoutPath, fullTaskName + '.nuspec');
+    console.log('taskNuspecPath: ' + taskNuspecPath);
+    fs.writeFileSync(taskNuspecPath, contents);
+
+    return taskNuspecPath;
+}
+
+/**
+ * Create .nupkg for a specific task.
+ * @param {*} publishPath X. e.g - _package\per-task-publish
+ * @param {*} taskFolderName X. e.g - AzurePowerShellV3__v3
+ * @param {*} taskNuspecPath X. e.g - _package\per-task-layout\AzureCLIV1__v1\Mseng.MS.TF.DistributedTask.Tasks.AzureCLIV1.nuspec
+ * @param {*} taskLayoutPath X. e.g - _package\per-task-layout\AzurePowerShellV3__v3
+ * @returns Publish folder for the task. e.g - _package\per-task-publish\AzurePowerShellV3__v3
+ */
+var createNuGetPackage = function (publishPath, taskFolderName, taskNuspecPath, taskLayoutPath) {
+    console.log('> Creating nuget package for task ' + taskFolderName);
+    
+    var taskPublishFolder = path.join(publishPath, taskFolderName);
+    fs.mkdirSync(taskPublishFolder);
+    process.chdir(taskPublishFolder);
+
+    console.log('task nuspec path: ' + taskNuspecPath);
+    console.log('base path: ' + taskLayoutPath)
+    run(`nuget pack "${taskNuspecPath}" -BasePath "${taskLayoutPath}" -NoDefaultExcludes`, /*inheritStreams:*/ true);
+
+    return taskPublishFolder;
+}
+
+/**
+ * Create push.cmd for the task.
+ * @param {*} taskPublishFolder Folder where we are publishing tasks from. e.g - _package\per-task-publish\AzureCLIV1__v1
+ * @param {*} fullTaskName Full name of the task. e.g - Mseng.MS.TF.Build.Tasks.AzureCLI
+ * @param {*} taskVersion Version of the task. e.g - 1.132.0
+ */
+var createPushCmd = function (taskPublishFolder, fullTaskName, taskVersion) {
+    console.log('> Creating push.cmd for task ' + fullTaskName);
+
+    var taskPushCmdPath = path.join(taskPublishFolder, 'push.cmd');
+    var nupkgName = `${fullTaskName}.${taskVersion}.nupkg`;
+
+    // TODO: I think we just need to rename this, the name is not accurate. It's the tasks feed url that we happen to push the aggregate to. It's not a specific link for the aggregate.
+    var taskFeedUrl = process.env.AGGREGATE_TASKS_FEED_URL; // Need the task feed per task. This is based on task name from task.json too? Can we append based on name?
+    var apiKey = 'Skyrise';
+
+    var taskFeedUrl = "http://localhost:44396/nuget";
+    var apiKey = '123456';
+    
+    fs.writeFileSync(taskPushCmdPath, `nuget.exe push ${nupkgName} -source "${taskFeedUrl}" -apikey ${apiKey}`);
+}
 
 var createHotfixLayout = function (packagePath, taskName) {
     assert(packagePath, 'packagePath');
