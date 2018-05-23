@@ -1301,8 +1301,16 @@ var createNugetPackagePerTask = function (packagePath, /*nonAggregatedLayoutPath
             unifiedDepsContent += `  <package id="${fullTaskName}" version="${taskVersion}" availableAtDeployTime="true" />` + os.EOL;
 
             // Create xml entries for servicing
+            // OLD:
             // 	<File Origin="nuget://Mseng.MS.TF.DistributedTask.Tasks.XCode/*?version=2.121.0" />
-            servicingXmlContent += 	`<File Origin="nuget://${fullTaskName}/*?version=${taskVersion}" />` + os.EOL;
+            // NEW:
+            // <Directory Path="[ServicingDir]Tasks\Individual\AzurePowerShellV3\">
+            //     <File Origin="nuget://Mseng.MS.TF.DistributedTask.Tasks.AzurePowerShell/AzurePowerShellV3/*?version=3.0.3" />
+            // </Directory>
+            servicingXmlContent += `  <Directory Path="[ServicingDir]Tasks\\Individual\\${taskName}\\">` + os.EOL;
+            //servicingXmlContent += `    <File Origin="nuget://${fullTaskName}/*?version=${taskVersion}" />` + os.EOL;
+            servicingXmlContent += `    <File Origin="nuget://${fullTaskName}/${taskFolderName}/*?version=${taskVersion}" />` + os.EOL;
+            servicingXmlContent += `  </Directory>` + os.EOL;
 
             // Create a matching folder inside taskZipsPath
             var taskZipPath = path.join(tasksZipsPath, taskFolderName);
@@ -1317,17 +1325,16 @@ var createNugetPackagePerTask = function (packagePath, /*nonAggregatedLayoutPath
             // Old, think theres a bug
             //var folderInsideFolderPath = path.join(tasksZipsPath, taskFolderName);
             // New, should be nested
-            var folderInsideFolderPath = path.join(taskZipPath, taskFolderName);
-            mkdir('-p', folderInsideFolderPath);
-            console.log('nested folder: ' + folderInsideFolderPath);
+            // var folderInsideFolderPath = path.join(taskZipPath, taskFolderName);
+            // mkdir('-p', folderInsideFolderPath);
+            // console.log('nested folder: ' + folderInsideFolderPath);
 
-            // TOOD: This is probably slow. Check other code to do hard sync?
-            var copydir = require('copy-dir');
-            copydir.sync(taskLayoutPath, folderInsideFolderPath);
-            //fs.copyFileSync(taskLayoutPath, taskZipPath);
+            // // TOOD: This is probably slow. Check other code to do hard sync?
+            // var copydir = require('copy-dir');
+            // copydir.sync(taskLayoutPath, folderInsideFolderPath);
 
             // Write layout version file
-            fs.writeFileSync(path.join(folderInsideFolderPath, 'layout-version.txt'), '3');
+            fs.writeFileSync(path.join(taskZipPath, 'layout-version.txt'), '3');
 
             // Zip the folder from non aggregated layout and name it based on task.json contents. TODO: Refactor this to method?
             // TODO IMPORTANT: We want to zip it as an entire folder so that when we unzip it's a full folder? Makes the servicing processing simpler.
