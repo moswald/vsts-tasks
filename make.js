@@ -487,16 +487,35 @@ target.layout = function() {
 
     console.log('layout path: ' + layoutPath);
     util.createNugetPackagePerTask(packagePath, layoutPath);
-    
+
+    // Rename folders
+    // fs.readdirSync('E:\\AllTaskMajorVersions')
+    //     .forEach(function (taskFolderName) {
+    //         if (taskFolderName.charAt(taskFolderName.length-1) === taskFolderName.charAt(taskFolderName.length-1)
+    //             && taskFolderName.charAt(taskFolderName.length-2) === taskFolderName.charAt(taskFolderName.length-4))
+    //         {
+    //             var currentPath = path.join('E:\\AllTaskMajorVersions', taskFolderName);
+    //             var newPath = path.join('E:\\AllTaskMajorVersions', taskFolderName.substring(0, taskFolderName.length - 2));
+
+    //             fs.renameSync(currentPath, newPath);
+    //         }
+
+    //         // var currentPath = path.join('E:\\AllTaskMajorVersions', taskFolderName);
+    //         // var s = taskFolderName.split('__');
+    //         // var newFolderName = s[0] + s[1].toUpperCase();
+    //         // var newPath = path.join('E:\\AllTaskMajorVersions', newFolderName);
+            
+    //         // fs.renameSync(currentPath, newPath);
+    //     });
+
     // TODO: Will have to rerun this with new Task folder layout, then push to local NuGet, then regen the entire thing with push.cmd
     // that goes to actual packaging, then push them up there. Don't do that until it's fully working end to end.
     // create nuget package per task for older major versions of tasks
-    
-    // var legacyPath = path.join(__dirname, '_packageLegacy');
-    // if (test('-d', legacyPath)) {
-    //     rm('-rf', legacyPath);
-    // }
-    // util.createNugetPackagePerTask(legacyPath, 'E:\\AllTaskMajorVersions');
+    var legacyPath = path.join(__dirname, '_packageLegacy');
+    if (test('-d', legacyPath)) {
+        rm('-rf', legacyPath);
+    }
+    util.createNugetPackagePerTask(legacyPath, 'E:\\AllTaskMajorVersions');
 }
 
 // used by CI that does official publish
