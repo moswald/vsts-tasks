@@ -1,7 +1,10 @@
 {
     "tasks": [
         "AndroidSigningV2",
-        "AzurePowerShellV3"
+        "AzurePowerShellV3",
+        "BatchScriptV1",
+        "ChefV1",
+        "ChefKnifeV1"
     ],
     "taskResources": [
         "*.ps1",
