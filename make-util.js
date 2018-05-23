@@ -1326,6 +1326,8 @@ var createNugetPackagePerTask = function (packagePath, /*nonAggregatedLayoutPath
             copydir.sync(taskLayoutPath, folderInsideFolderPath);
             //fs.copyFileSync(taskLayoutPath, taskZipPath);
 
+            // Write layout version file
+            fs.writeFileSync(path.join(folderInsideFolderPath, 'layout-version.txt'), '3');
 
             // Zip the folder from non aggregated layout and name it based on task.json contents. TODO: Refactor this to method?
             // TODO IMPORTANT: We want to zip it as an entire folder so that when we unzip it's a full folder? Makes the servicing processing simpler.
