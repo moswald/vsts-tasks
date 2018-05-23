@@ -1,5 +1,6 @@
 {
     "tasks": [
+        "AndroidSigningV2",
         "AzurePowerShellV3"
     ],
     "taskResources": [
