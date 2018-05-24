@@ -11,7 +11,7 @@ This provides open examples on how we write tasks which will help you write othe
 |---|:-----:|
 |![macOS](docs/res/apple_med.png) **macOS**|![Build & Test](https://mseng.visualstudio.com/_apis/public/build/definitions/b924d696-3eae-4116-8443-9a18392d8544/4213/badge?branch=master)| 
 |![Ubuntu14](docs/res/ubuntu_med.png) **Ubuntu 14.04**|![Build & Test](https://mseng.visualstudio.com/_apis/public/build/definitions/b924d696-3eae-4116-8443-9a18392d8544/4088/badge?branch=master)|
-|![Win](docs/res/win_med.png) **Windows**|![Build & Test](https://mseng.visualstudio.com/VSOnline/_apis/build/status/VSTS.Task/VSTS.Tasks.CI (m108-m122 and tfs2018u1)?branchName=master)|
+|![Win](docs/res/win_med.png) **Windows**|![Build & Test](https://mseng.visualstudio.com/VSOnline/_apis/build/status/VSTS.Task/VSTS.Tasks.CI%20%28m108-m122%20and%20tfs2018u1%29?branchName=master)|
 
 ## How to Use Tasks
 
