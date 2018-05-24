@@ -1381,7 +1381,6 @@ var getServicingXmlContent = function (taskFolderName, fullTaskName, taskVersion
     var servicingXmlContent = '';
     servicingXmlContent += `  <!-- Files for ${fullTaskName} -->` + os.EOL;
     servicingXmlContent += `  <Directory Path="[ServicingDir]Tasks\\Individual\\${taskFolderName}\\">` + os.EOL;
-    //servicingXmlContent += `    <File Origin="nuget://${fullTaskName}/*?version=${taskVersion}" />` + os.EOL;
     servicingXmlContent += `    <File Origin="nuget://${fullTaskName}/${taskFolderName}/*?version=${taskVersion}" />` + os.EOL;
     servicingXmlContent += `  </Directory>` + os.EOL;
 
@@ -1396,14 +1395,9 @@ var getServicingXmlContent = function (taskFolderName, fullTaskName, taskVersion
 }
 
 var getServicingXmlContentForLocale = function(taskFolderName, fullTaskName, taskVersion, locale) {
-    var localeContent = '';
-    localeContent += `  <!-- Files for ${fullTaskName} -->` + os.EOL;
-    localeContent += `  <Directory Path="[ServicingDir]Tasks\\Individual\\${taskFolderName}\\Strings\${locale}">` + os.EOL;
-    //servicingXmlContent += `    <File Origin="nuget://${fullTaskName}/*?version=${taskVersion}" />` + os.EOL;
-    localeContent += `    <File Origin="nuget://${fullTaskName}/${taskFolderName}/Strings/${locale}/*?version=${taskVersion}" />` + os.EOL;
-    localeContent += `  </Directory>` + os.EOL;
-
-    return localeContent;
+    return `  <Directory Path="[ServicingDir]Tasks\\Individual\\${taskFolderName}\\Strings\${locale}">` + os.EOL;
+           + `    <File Origin="nuget://${fullTaskName}/${taskFolderName}/Strings/${locale}/*?version=${taskVersion}" />` + os.EOL;
+           + `  </Directory>` + os.EOL;
 }
 
 /**
