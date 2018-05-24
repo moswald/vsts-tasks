@@ -1300,17 +1300,8 @@ var createNugetPackagePerTask = function (packagePath, /*nonAggregatedLayoutPath
             // <package id="Mseng.MS.TF.Build.Tasks.AzureCLI" version="1.132.0" availableAtDeployTime="true" />
             unifiedDepsContent += `  <package id="${fullTaskName}" version="${taskVersion}" availableAtDeployTime="true" />` + os.EOL;
 
-            // Create xml entries for servicing
-            // OLD:
-            // 	<File Origin="nuget://Mseng.MS.TF.DistributedTask.Tasks.XCode/*?version=2.121.0" />
-            // NEW:
-            // <Directory Path="[ServicingDir]Tasks\Individual\AzurePowerShellV3\">
-            //     <File Origin="nuget://Mseng.MS.TF.DistributedTask.Tasks.AzurePowerShell/AzurePowerShellV3/*?version=3.0.3" />
-            // </Directory>
-            servicingXmlContent += `  <Directory Path="[ServicingDir]Tasks\\Individual\\${taskFolderName}\\">` + os.EOL;
-            //servicingXmlContent += `    <File Origin="nuget://${fullTaskName}/*?version=${taskVersion}" />` + os.EOL;
-            servicingXmlContent += `    <File Origin="nuget://${fullTaskName}/${taskFolderName}/*?version=${taskVersion}" />` + os.EOL;
-            servicingXmlContent += `  </Directory>` + os.EOL;
+            // Get XML content that we need to configure servicing file
+            servicingXmlContent += getServicingXmlContent(taskFolderName, fullTaskName, taskVersion);
 
             // Create a matching folder inside taskZipsPath
             var taskZipPath = path.join(tasksZipsPath, taskFolderName);
@@ -1378,6 +1369,42 @@ var createNugetPackagePerTask = function (packagePath, /*nonAggregatedLayoutPath
     fs.writeFileSync(servicingContentPath, servicingXmlContent);
 }
 exports.createNugetPackagePerTask = createNugetPackagePerTask;
+
+var getServicingXmlContent = function (taskFolderName, fullTaskName, taskVersion) {
+    // Create xml entries for servicing
+    // OLD:
+    // 	<File Origin="nuget://Mseng.MS.TF.DistributedTask.Tasks.XCode/*?version=2.121.0" />
+    // NEW:
+    // <Directory Path="[ServicingDir]Tasks\Individual\AzurePowerShellV3\">
+    //     <File Origin="nuget://Mseng.MS.TF.DistributedTask.Tasks.AzurePowerShell/AzurePowerShellV3/*?version=3.0.3" />
+    // </Directory>
+    var servicingXmlContent = '';
+    servicingXmlContent += `  <!-- Files for ${fullTaskName} -->` + os.EOL;
+    servicingXmlContent += `  <Directory Path="[ServicingDir]Tasks\\Individual\\${taskFolderName}\\">` + os.EOL;
+    //servicingXmlContent += `    <File Origin="nuget://${fullTaskName}/*?version=${taskVersion}" />` + os.EOL;
+    servicingXmlContent += `    <File Origin="nuget://${fullTaskName}/${taskFolderName}/*?version=${taskVersion}" />` + os.EOL;
+    servicingXmlContent += `  </Directory>` + os.EOL;
+
+    // TODO: If we were to zip the task again we wouldn't need to do this. It would simplify the servicing XML but add time to unzip multiple times. We
+    //       would then have a nuget, inside that a zip, and inside that a zip and files.
+    ['', ''].forEach(function (locale) {
+        servicingXmlContent += getServicingXmlContentForLocale(taskFolderName, fullTaskName, taskVersion, locale);
+    });
+
+    // new line after to clear space for the next task
+    servicingXmlContent += os.EOL;
+}
+
+var getServicingXmlContentForLocale = function(taskFolderName, fullTaskName, taskVersion, locale) {
+    var localeContent = '';
+    localeContent += `  <!-- Files for ${fullTaskName} -->` + os.EOL;
+    localeContent += `  <Directory Path="[ServicingDir]Tasks\\Individual\\${taskFolderName}\\Strings\${locale}">` + os.EOL;
+    //servicingXmlContent += `    <File Origin="nuget://${fullTaskName}/*?version=${taskVersion}" />` + os.EOL;
+    localeContent += `    <File Origin="nuget://${fullTaskName}/${taskFolderName}/Strings/${locale}/*?version=${taskVersion}" />` + os.EOL;
+    localeContent += `  </Directory>` + os.EOL;
+
+    return localeContent;
+}
 
 /**
  * Create .nuspec file for the task.
