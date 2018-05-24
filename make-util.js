@@ -1395,6 +1395,8 @@ var getServicingXmlContent = function (taskFolderName, fullTaskName, taskVersion
 
     // new line after to clear space for the next task
     servicingXmlContent += os.EOL;
+
+    return servicingXmlContent;
 }
 
 var getServicingXmlContentForLocale = function(taskFolderName, fullTaskName, taskVersion, locale) {
