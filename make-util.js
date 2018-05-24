@@ -1307,7 +1307,7 @@ var createNugetPackagePerTask = function (packagePath, /*nonAggregatedLayoutPath
             // <Directory Path="[ServicingDir]Tasks\Individual\AzurePowerShellV3\">
             //     <File Origin="nuget://Mseng.MS.TF.DistributedTask.Tasks.AzurePowerShell/AzurePowerShellV3/*?version=3.0.3" />
             // </Directory>
-            servicingXmlContent += `  <Directory Path="[ServicingDir]Tasks\\Individual\\${taskName}\\">` + os.EOL;
+            servicingXmlContent += `  <Directory Path="[ServicingDir]Tasks\\Individual\\${taskFolderName}\\">` + os.EOL;
             //servicingXmlContent += `    <File Origin="nuget://${fullTaskName}/*?version=${taskVersion}" />` + os.EOL;
             servicingXmlContent += `    <File Origin="nuget://${fullTaskName}/${taskFolderName}/*?version=${taskVersion}" />` + os.EOL;
             servicingXmlContent += `  </Directory>` + os.EOL;
