@@ -1400,7 +1400,7 @@ var getServicingXmlContent = function (taskFolderName, fullTaskName, taskVersion
 }
 
 var getServicingXmlContentForLocale = function(taskFolderName, fullTaskName, taskVersion, locale) {
-    return `  <Directory Path="[ServicingDir]Tasks\\Individual\\${taskFolderName}\\Strings\resources.resjson\${locale}">` + os.EOL;
+    return `  <Directory Path="[ServicingDir]Tasks\\Individual\\${taskFolderName}\\Strings\\resources.resjson\\${locale}">` + os.EOL;
            + `    <File Origin="nuget://${fullTaskName}/${taskFolderName}/Strings/resources.resjson/${locale}/*?version=${taskVersion}" />` + os.EOL;
            + `  </Directory>` + os.EOL;
 }
