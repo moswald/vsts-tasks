@@ -17,6 +17,9 @@ var downloadPath = path.join(__dirname, '_download');
 // list of .NET culture names
 var cultureNames = ['cs', 'de', 'es', 'fr', 'it', 'ja', 'ko', 'pl', 'pt-BR', 'ru', 'tr', 'zh-Hans', 'zh-Hant'];
 
+// list of locales that we translate to
+var locales = ['de-de', 'en-US', 'es-es', 'fr-fr', 'it-IT', 'ja-jp', 'ko-KR', 'ru-RU', 'zh-CN', 'zh-TW'];
+
 //------------------------------------------------------------------------------
 // shell functions
 //------------------------------------------------------------------------------
@@ -1386,7 +1389,7 @@ var getServicingXmlContent = function (taskFolderName, fullTaskName, taskVersion
 
     // TODO: If we were to zip the task again we wouldn't need to do this. It would simplify the servicing XML but add time to unzip multiple times. We
     //       would then have a nuget, inside that a zip, and inside that a zip and files.
-    ['', ''].forEach(function (locale) {
+    locales.forEach(function (locale) {
         servicingXmlContent += getServicingXmlContentForLocale(taskFolderName, fullTaskName, taskVersion, locale);
     });
 
